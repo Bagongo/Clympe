@@ -8,6 +8,8 @@ The project may be worked on with Cline on one machine, OpenCode on another, and
 
 This project is a Chrome extension focused on displaying a list of up to the top 100 crypto coins by market capitalization.
 
+I also displays the current price of BTC in the extension badge (icon)
+
 The popup UI is an important part of the project and should be treated as an asset to preserve where possible, not something to rewrite casually.
 
 ## Architectural direction
