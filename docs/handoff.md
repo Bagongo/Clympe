@@ -1,110 +1,116 @@
 # Handoff
 
-## Status
+## Current Status
 
-Active.
+Architecture definition completed.
 
-## Project state summary
+The project direction has intentionally changed from a backend-first approach to a client-first approach.
 
-The project is not greenfield.
+The current goal is to build a fully functional extension that works independently from any backend.
 
-The popup/frontend is already in a relatively advanced state compared with the infrastructure around it. At minimum, there is a functioning popup capable of rendering the market list.
+---
 
-The project direction has been updated: the current preferred approach is no longer an immediate migration to a backend-first architecture.
+# Current Milestone
 
-## Current reality to preserve
+Implement the autonomous client architecture.
 
-Agents should assume the existing popup is worth preserving.
+The extension should:
 
-The current goal is not to redesign the frontend from scratch. The current goal is to understand the existing implementation, preserve the working UI, and improve the data flow only as much as the current scale actually requires.
+- fetch market data directly from the CoinGecko Keyless Public API;
+- maintain a short local cache (approximately one minute);
+- avoid duplicate requests while the cache is valid;
+- retry failed requests using exponential backoff;
+- continue displaying the latest valid cached data whenever fresh data cannot be retrieved.
 
-## Guiding architectural principle
+No backend should be required for normal operation.
 
-The current guiding principle is:
+---
 
-**Use the minimum infrastructure necessary for the current level of scale.**
+# Architecture Decisions
 
-That means:
+The following decisions have already been made.
 
-- direct client-side CoinGecko access is acceptable in the primary phase;
-- local cache and stale-safe rendering are important;
-- backend infrastructure should be introduced only when there is a concrete reliability or scale reason.
+### Primary data source
 
-## Current preferred roadmap
+Use the CoinGecko Keyless Public API.
 
-### Phase 1 — Primary architecture
-- Extension fetches CoinGecko directly.
-- Client-side caching should be used.
-- Stale-safe behavior should exist locally in the extension.
+Reason:
 
-### Phase 2 — Worker fallback
-- Introduce a Cloudflare Worker only as a fallback path if CoinGecko fails, times out, or rate-limits too often.
-- Worker may serve cached snapshot data.
+- zero infrastructure
+- zero operating cost
+- naturally distributed traffic across users
+- simplest architecture for the current project size
 
-### Phase 3 — Backend optimization
-- Optimize Worker/KV/cache behavior only if real usage indicates that fallback traffic is meaningful.
+---
 
-### Phase 4 — Advanced scale
-- If usage grows enough to justify it, consider a scheduled Worker generating static JSON snapshots distributed through R2/CDN.
+### Cache strategy
 
-## Known but still fuzzy history
+Use a short client-side cache.
 
-This project dates back several years.
+Its purpose is **not** to minimize CoinGecko usage, but to:
 
-There may be additional branches containing in-progress or partial features such as options panels or other extension-related UI/functionality. The exact state of those branches and features is not yet fully remembered by the project owner.
+- avoid repeated requests caused by opening the popup multiple times;
+- improve responsiveness;
+- provide stale-safe behaviour during temporary network failures.
 
-Agents should therefore stay generic and careful in their assumptions.
+---
 
-## Safe assumptions for now
+### Backend
 
-- The popup can render the list and is a useful existing asset.
-- Some extra features may exist, but not all are confirmed yet.
-- The repository likely needs inspection before deciding what to keep, merge, or retire.
-- The most reliable current target is to understand the current client-side fetch path before proposing infrastructure changes.
+Cloudflare is **not** part of the current milestone.
 
-## Migration guardrails
+Backend infrastructure should only be introduced when there is a measurable reliability or scalability benefit.
 
-- Do not rewrite the popup unless the codebase inspection shows a strong technical reason.
-- Do not assume direct client-side CoinGecko access is automatically wrong in the current phase.
-- Do not assume incomplete or old branches are useless; inspect before removing.
-- Prefer incremental migration over broad refactors.
-- Only introduce backend complexity when there is a clear operational justification.
+---
 
-## Immediate next actions for any agent
+# Planned Evolution
 
-1. Inspect the current branch and repo structure.
-2. Identify popup entry points and the current data-fetching code.
-3. Check whether the client-side fetch path already includes cache, retry, deduplication, or stale fallback behavior.
-4. Identify where CoinGecko calls are made and how frequently.
-5. Check whether experimental branches or partially implemented features appear relevant.
-6. Propose the smallest viable improvement consistent with the current roadmap phase.
+When justified by real usage:
 
-## What to look for specifically
+1. Optional Cloudflare Worker fallback.
+2. Worker + KV improvements.
+3. Worker + Cache API optimizations.
+4. R2 + CDN (if large-scale distribution becomes necessary).
 
-Agents should try to confirm:
+Each step should only be implemented after the previous one proves insufficient.
 
-- whether the popup already stores data locally;
-- whether current fetches are bursty or excessive;
-- whether existing code can support a simple TTL cache without broader rewrites;
-- whether backend fallback is already partially implemented somewhere;
-- whether any options/settings UI already exists for refresh behavior.
+---
 
-## How to update this file
+# Immediate Priorities
 
-As the project owner remembers more details, or as agents inspect the repo, this file should be refined with:
+When working on the repository, prioritize:
 
-- confirmed existing features;
-- confirmed obsolete work;
-- important file paths;
-- roadmap phase currently implemented;
-- migration progress;
-- next concrete tasks.
+1. understanding the current CoinGecko fetch flow;
+2. implementing the local cache correctly;
+3. implementing retry/backoff behaviour;
+4. implementing stale-safe rendering;
+5. preserving the existing popup and UI.
 
-Until then, keep the document generic enough to avoid misleading future agents.
+Avoid architectural refactors unless they are necessary for the current milestone.
 
-## Consistency with AGENTS.md
+---
 
-This handoff must be read together with `AGENTS.md`, which defines the default execution policy:
+# Decision Log
 
-- default mode is **discussion and planning only**;
-- no code changes, file writes, or modifying commands unless explicitly requested.
+## Current accepted architecture
+
+Primary path:
+
+Extension
+→ CoinGecko
+
+Fallback (future):
+
+Extension
+→ Cloudflare Worker
+→ Cached snapshot
+
+Advanced scale (future):
+
+Worker
+→ R2
+→ CDN
+
+This roadmap has been intentionally chosen to keep the project simple while allowing future scalability.
+
+Future agents should avoid proposing backend-first solutions unless new project requirements justify them.

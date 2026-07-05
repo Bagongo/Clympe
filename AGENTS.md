@@ -2,102 +2,135 @@
 
 This repository is intended to be agent-agnostic.
 
-The project may be worked on with Cline on one machine, OpenCode on another, and possibly other coding agents in the future. This file is the main shared source of truth for agent behavior in this repository.
+These guidelines apply to any coding agent (Cline, Claude Code, Codex, OpenCode, etc.) working on this project.
 
-## Project overview
+---
 
-This project is a Chrome extension focused on displaying a list of up to the top 100 crypto coins by market capitalization.
+# Project
 
-I also displays the current price of BTC in the extension badge (icon)
+This project is a Chrome extension that displays:
 
-The popup UI is an important part of the project and should be treated as an asset to preserve where possible, not something to rewrite casually.
+- the Top cryptocurrency market list (up to 100 coins);
+- the current BTC price in the browser badge.
 
-## Architectural direction
+The existing popup/UI is considered a valuable project asset and should generally be preserved rather than rewritten.
 
-The preferred architecture going forward is:
+---
 
-1. Chrome extension frontend for popup and related UI.
-2. A lightweight backend/cache layer, currently preferred as a Cloudflare Worker.
-3. CoinGecko Demo API as the upstream market data source.
-4. Local cache and stale-safe rendering behavior in the extension.
+# Guiding Principle
 
-## Important current constraint
+Use the minimum infrastructure necessary for the current level of scale.
 
-Historically, the project appears to have used direct client-side calls to CoinGecko from the extension popup or frontend code.
+Prefer simple, reliable solutions over theoretically more scalable ones.
 
-That direct data access pattern should be treated as the main architectural debt to remove.
+Introduce backend infrastructure only when there is a clear operational or architectural benefit.
 
-The preferred migration path is to preserve the existing frontend as much as practical while changing the data flow behind it.
+---
 
-## Core rules for all agents
+# Architecture Roadmap
 
-- Do not assume the popup should be rewritten from scratch.
-- Default assumption: preserve the existing popup UI and existing useful frontend logic where feasible.
-- Focus refactoring effort first on the data access path and architecture, not on cosmetic rewrites.
-- Do not silently revert to a direct keyless CoinGecko client-polling design.
-- Prefer CoinGecko Demo API over keyless public access for the planned architecture.
-- Prefer a backend cache layer between the extension and CoinGecko.
-- Preserve a stale-safe UX: if fresh data fails temporarily, the extension should still be able to render the last valid data when safe.
+## Phase 1 (current architecture)
 
-## Default execution policy
+The extension operates autonomously.
 
-Default behavior for this repository is **discussion and planning only**.
+Primary data source:
 
-Unless the user explicitly asks for implementation, agents must:
+Extension
+→ CoinGecko Keyless Public API
 
-- inspect and analyze the repository;
-- explain findings;
-- propose plans and trade-offs;
-- avoid editing files;
-- avoid creating files;
-- avoid running modifying commands.
+Requirements:
 
-Code changes, file writes, refactors, or command execution that alters the project require **explicit user approval**.
+- short client-side cache (around one minute);
+- request deduplication;
+- retry with exponential backoff;
+- stale-safe rendering;
+- no backend dependency.
 
-## Working assumptions
+---
 
-Unless the repository proves otherwise, agents should work from these assumptions:
+## Phase 2
 
-- A popup already exists and can render the list.
-- Some branches may contain experimental or unfinished work such as options panels or additional UI/features.
-- The exact state of all historical branches and features is not yet fully recalled by the project owner.
-- Agents should inspect the repo carefully before making structural decisions.
+Introduce an **optional** Cloudflare Worker fallback.
 
-## Initial investigation priority
+The Worker should only be used when direct CoinGecko requests repeatedly fail, timeout or become rate limited.
 
-Before major implementation work, agents should:
+---
 
-1. Identify the current popup entry point and current data-fetching path.
-2. Identify whether additional UI/features exist on branches or behind incomplete files.
-3. Avoid deleting dormant or uncertain features unless there is strong evidence they are obsolete.
-4. Document important findings in `docs/handoff.md` as the repo becomes better understood.
+## Phase 3
 
-## Documentation rules
+Optimize the fallback infrastructure only if real usage justifies it.
 
-Keep documentation minimal.
+Possible improvements:
 
-- `AGENTS.md` contains stable cross-agent instructions.
-- `docs/handoff.md` contains current project state, migration guidance, and next steps.
-- `.clinerules/00-core.md` is only a thin adapter for Cline.
+- KV
+- Cache API
+- Worker caching
 
-Do not create many new markdown files unless the project genuinely grows enough to need them.
+---
 
-## Startup read order
+## Phase 4
 
-Before non-trivial work:
+Only if the project reaches significant scale:
 
-1. Read `AGENTS.md`.
-2. Read `docs/handoff.md`.
-3. Inspect the actual repository structure and current branch before changing architecture.
+Worker
+→ R2
+→ CDN
 
-## Change control
+This architecture requires a custom domain and is intentionally outside the initial implementation scope.
 
-If an agent believes the current direction should change, it should first update `docs/handoff.md` with the discovered reality and the reason for the proposed change.
+---
 
-## Default chapter
+# Existing and Experimental Features
 
-At the start of each task, restate in your own words:
+The repository may contain historical branches with partially implemented features.
 
-- the current policy (discussion-first, no edits by default);
-- the current objective (migration of data flow, not popup rewrite);
-- the next concrete step (inspection, analysis, plan).
+Before implementing new functionality, inspect existing branches to determine whether similar work already exists.
+
+Known experimental work includes:
+
+- an Options panel;
+- configurable limit for the number of displayed coins (partially implemented).
+
+Potential future features include:
+
+- user-defined watchlists;
+- additional user preferences exposed through the Options panel.
+
+Whenever practical, prefer completing existing work over creating new implementations from scratch.
+
+---
+
+# Development Rules
+
+- Preserve the existing popup whenever reasonably possible.
+- Prefer incremental improvements over large rewrites.
+- Avoid premature optimization.
+- Avoid introducing unnecessary infrastructure.
+- Preserve a stale-safe user experience whenever possible.
+- Document important architectural decisions before implementing them.
+
+---
+
+# Long-Term Vision
+
+The project should remain:
+
+- lightweight;
+- fast;
+- privacy-friendly;
+- easy to maintain.
+
+Potential future improvements should enhance the user experience without significantly increasing architectural complexity.
+
+---
+
+# Default Execution Policy
+
+Unless explicitly requested by the user:
+
+- inspect;
+- analyze;
+- discuss;
+- propose.
+
+Do not modify code, files or project structure without explicit approval.
