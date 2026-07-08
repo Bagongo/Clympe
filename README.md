@@ -1,4 +1,4 @@
-# Crypto Browser Extension
+# Clympe
 
 A lightweight Chrome extension that displays:
 
