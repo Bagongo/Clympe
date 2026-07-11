@@ -142,7 +142,7 @@ function updateBadgeFromCache() {
       if (cachedPrice) {
         const formattedPrice = formatPrice(cachedPrice);
         chrome.action.setBadgeText({ text: formattedPrice });
-        logEvent(Date.now(), 'DATA_FROM_CACHE', 'BTC Price', `Updated badge with cached price: ${cachedPrice}`);
+        logEvent(Date.now(), 'DATA_FROM_CACHE', 'BTC Price', `Badge refreshed with cached data.`);
       } else {
         fetchBitcoinPrice();
       }

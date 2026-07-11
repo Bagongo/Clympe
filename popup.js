@@ -120,7 +120,7 @@ function populatePopup() {
       generateCoinSlots(result.data, numOfCoinsToDisplay);
       setLastUpdateTime(result.timestamp);
       updateTitle(numOfCoinsToDisplay);
-      logEvent(Date.now(), 'DATA_RENDERED', 'Coin List', `Popup refreshed, ${result.data.length} coins`);
+      logEvent(Date.now(), 'DATA_FROM_CACHE', 'Coin List', `Popup refreshed with cached data.`);
     }
   });
 }
