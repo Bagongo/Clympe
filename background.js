@@ -23,6 +23,7 @@ const initApp = () => {
         .then(() => updateBadgeFromCache())
         .catch(error => console.error('Initial BTC fetch failed:', error));
     getTopCoins(numOfCoinsToGet, decimalPrecision);
+    chrome.alarms.create('refreshData', { periodInMinutes: 1 }); // 60000ms = 1 min
 };
 
 //Unified, consistent console logging for all data events
@@ -150,12 +151,14 @@ function updateBadgeFromCache() {
 
 initApp();
 
-//refresh badge data routine
-setInterval(() => {
-  fetchBitcoinPrice()
-    .then(() => updateBadgeFromCache())
-    .catch(error => console.error('BTC fetch failed:', error));
-}, dataRefreshRate);
-//refresh coin data routine
-setInterval(() => getTopCoins(numOfCoinsToGet, decimalPrecision), dataRefreshRate);
+// Alarms to refresh data routinely 
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'refreshData') {
+    fetchBitcoinPrice()
+      .then(updateBadgeFromCache)
+      .catch(e => console.error('BTC fetch failed:', e));
+    getTopCoins(numOfCoinsToGet, decimalPrecision);
+  }
+});
+
 

@@ -111,15 +111,23 @@ function getCachedData(key) {
     });
   });
 }
+
 //calls the functions to populate the popup with the data retrieved from cache
-//(gets executed every time the popup opens)
-getCachedData('topCoins').then(result => {
-  if (result) {
-    logEvent(Date.now(), 'DATA_FROM_CACHE', 'Coin List', `Using cached data for Coin List.`);
-    generateCoinSlots(result.data, numOfCoinsToDisplay);
-    setLastUpdateTime(result.timestamp);
-    updateTitle(numOfCoinsToDisplay);
-  } else {
-    logEvent(Date.now(), 'DATA_NOT_FOUND', 'Coin List', `No cached data found for Coin List.`);}
-});
+function populatePopup() {
+  getCachedData('topCoins').then(result => {
+    if (result) {
+      document.getElementById('coin-box').innerHTML = ''; // clear
+      generateCoinSlots(result.data, numOfCoinsToDisplay);
+      setLastUpdateTime(result.timestamp);
+      updateTitle(numOfCoinsToDisplay);
+      logEvent(Date.now(), 'DATA_RENDERED', 'Top Coins', `Popup refreshed, ${result.data.length} coins`);
+    }
+  });
+}
+
+//populate the popup on open and at an interval to prevent the popup from being stale if it is left open for a long time
+populatePopup();
+setInterval(() => {populatePopup();}, 30000);
+
+
 
