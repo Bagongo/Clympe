@@ -1,7 +1,7 @@
 //the number of chars to what a coin name must be abbreviated to (to contain popup width)
 const maxChars = 10;
 //the number of how many coins will displayed
-const numOfcoinsToDisplay = 100;
+const numOfCoinsToDisplay = 100;
 // the number of max precision to decimal notation in prices
 const maxPrecision = 8;
 //the counter value to match coins against (can implement dynamicity)
@@ -9,7 +9,7 @@ const counterValue = "$";
 
 //updates the dom element that show last time data was updated
 const setLastUpdateTime = (lastUpdateTime) => {
-  let formattedDate = lastUpdateTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  let formattedDate = new Date(lastUpdateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
   let updateSpan = document.getElementById("update-time");
   updateSpan.innerText = formattedDate;
 }
@@ -104,9 +104,9 @@ getCachedData('topCoins').then(result => {
   if (result) {
     console.log("Data found:", result.data);
     console.log("Timestamp:", result.timestamp);
-    generateCoinSlots(result.data, numOfcoinsToDisplay);
+    generateCoinSlots(result.data, numOfCoinsToDisplay);
     setLastUpdateTime(result.timestamp);
-    updateTitle(numofcoinsToDisplay);
+    updateTitle(numOfCoinsToDisplay);
   } else {
     console.log("No data found for this key");
   }
