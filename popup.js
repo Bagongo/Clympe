@@ -7,6 +7,19 @@ const maxPrecision = 8;
 //the counter value to match coins against (can implement dynamicity)
 const counterValue = "$";
 
+// Unified, consistent console logging for all data events
+const logEvent = (timestamp, eventType, dataType, details = '') => {
+  let readableTime;
+  if (typeof timestamp === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(timestamp.trim())) {
+    readableTime = timestamp.trim();
+  } else {
+    const date = (timestamp instanceof Date) ? timestamp : new Date(timestamp);
+    readableTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  const detailStr = details ? ` (${details})` : '';
+  console.log(`[${readableTime}] ${eventType}: ${dataType}${detailStr}`);
+};
+
 //updates the dom element that show last time data was updated
 const setLastUpdateTime = (lastUpdateTime) => {
   let formattedDate = new Date(lastUpdateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -20,7 +33,7 @@ const abbreviate = (str, length) => {
     }
     return str.substring(0, length) + "...";
 };
-
+//formats a price to a human readable string that fits the badge size
 const formatPrice = (price, maxPrecision) => {
     if (price <= 0) {
         let formattedPrice = price.toFixed(maxPrecision);
@@ -102,13 +115,11 @@ function getCachedData(key) {
 //(gets executed every time the popup opens)
 getCachedData('topCoins').then(result => {
   if (result) {
-    console.log("Data found:", result.data);
-    console.log("Timestamp:", result.timestamp);
+    logEvent(Date.now(), 'DATA_FROM_CACHE', 'Coin List', `Using cached data for Coin List.`);
     generateCoinSlots(result.data, numOfCoinsToDisplay);
     setLastUpdateTime(result.timestamp);
     updateTitle(numOfCoinsToDisplay);
   } else {
-    console.log("No data found for this key");
-  }
+    logEvent(Date.now(), 'DATA_NOT_FOUND', 'Coin List', `No cached data found for Coin List.`);}
 });
 

@@ -1,6 +1,6 @@
 //hardcoded number of how many top coins to fetch
 //(use a large number and narrow how many coins are displayed in popup.js
-let numOfTopCoins = 100;
+let numOfCoinsToGet = 100;
 //harcoded calue for decimal precision of prices to fetch
 let decimalPrecision = 8;
 //handles refresh rate of data in milliseconds
@@ -22,7 +22,22 @@ const initApp = () => {
     fetchBitcoinPrice()
         .then(() => updateBadgeFromCache())
         .catch(error => console.error('Initial BTC fetch failed:', error));
-    getTopCoins(numOfTopCoins, decimalPrecision);
+    getTopCoins(numOfCoinsToGet, decimalPrecision);
+};
+
+//Unified, consistent console logging for all data events
+const logEvent = (timestamp, eventType, dataType, details = '') => {
+  let readableTime;
+  // If already a human-readable "HH:MM" or "HH:MM:SS" string, use as-is
+  if (typeof timestamp === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(timestamp.trim())) {
+    readableTime = timestamp.trim();
+  } else {
+    // Otherwise treat as epoch ms (number) or Date and format it
+    const date = (timestamp instanceof Date) ? timestamp : new Date(timestamp);
+    readableTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  const detailStr = details ? ` (${details})` : '';
+  console.log(`[${readableTime}] ${eventType}: ${dataType}${detailStr}`);
 };
 
 //retrieve the data cached for a specific key if it is still valid (less than 1 minute old)
@@ -47,6 +62,7 @@ function setCachedData(key, data) {
     [key]: data,
     [`${key}_timestamp`]: timestamp
   });
+
 }
 
 function fetchWithRetry(url, retries = 3, backoff = 1000) {
@@ -72,7 +88,7 @@ const getTopCoins = (num, precision) => {
     // Check cache first
     getCachedData(cacheKey).then(cachedData => {
         if (cachedData) {
-            console.log("coin data loaded from cache");
+            logEvent(Date.now(), 'DATA_FROM_CACHE', 'Coin List', `Using cached data for Coin List.`);
             return cachedData;
         }
         // Cache miss - fetch fresh data
@@ -80,9 +96,9 @@ const getTopCoins = (num, precision) => {
         fetchWithRetry(url)
             .then(data => {
                 // Set to cache only on successful fetch
+                logEvent(Date.now(), 'DATA_DOWNLOADED', 'Coin List', `Fetched new data for Coin List.`);
                 setCachedData(cacheKey, data);
-                console.log("coin data refreshed at: " + 
-                    new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+                logEvent(Date.now(), 'DATA_CACHED', 'Coin List', `Cached new data for Coin List.`);
             })
             .catch(error => console.error("There was a problem while fetching the coin data.", error));
     });
@@ -107,30 +123,14 @@ const formatPrice = n => {
     return price.length <= 3 ? price + magnitude : price;
 };
 
-//refresh bitcoin price to be shown in the badge 
-const refreshBadge = () => {
-    let url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&precision=2";
-    fetch(url)
-    .then(response => {
-        if (!response.ok) {throw new Error("Network response was not ok");}
-        return response.json();
-    })
-    .then(response => {
-        let price = formatPrice(response["bitcoin"]["usd"]);
-        chrome.action.setBadgeText({text: price});
-        console.log("badge refreshed at: " + Date.now());
-    })
-    .catch(error => {
-        console.error("There was a problem with the badge update.", error);
-    });
-};
-
 //fetch bitcoin price and store it in cache
 function fetchBitcoinPrice() {
   const url = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd';
   return fetchWithRetry(url)
     .then(data => {
+      logEvent(Date.now(), 'DATA_DOWNLOADED', 'BTC Price', `Fetched BTC price: ${data.bitcoin.usd}`);
       setCachedData('btcPrice', data.bitcoin.usd);
+      logEvent(Date.now(), 'DATA_CACHED', 'BTC Price', `Cached BTC price: ${data.bitcoin.usd}`);
     });
 }
 
@@ -141,6 +141,7 @@ function updateBadgeFromCache() {
       if (cachedPrice) {
         const formattedPrice = formatPrice(cachedPrice);
         chrome.action.setBadgeText({ text: formattedPrice });
+        logEvent(Date.now(), 'DATA_FROM_CACHE', 'BTC Price', `Updated badge with cached price: ${cachedPrice}`);
       } else {
         fetchBitcoinPrice();
       }
@@ -153,7 +154,8 @@ initApp();
 setInterval(() => {
   fetchBitcoinPrice()
     .then(() => updateBadgeFromCache())
-    .catch(error => console.error('BTC fetch failed:', error));}, dataRefreshRate);
+    .catch(error => console.error('BTC fetch failed:', error));
+}, dataRefreshRate);
 //refresh coin data routine
-setInterval(() => getTopCoins(numOfTopCoins, decimalPrecision), dataRefreshRate);
+setInterval(() => getTopCoins(numOfCoinsToGet, decimalPrecision), dataRefreshRate);
 
