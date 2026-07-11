@@ -1,5 +1,6 @@
 {
-    "name": "Clympe",
+    "name": "Clympe - BTC & Crypto Prices",
+    "short_name": "Clympe",
     "version": "1.1.2",
     "description": "Shows BTC price on the extension icon (badge) and top coins prices in popup",
     "manifest_version" : 3,
