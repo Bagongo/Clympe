@@ -1,29 +1,29 @@
-//hardcoded number of how many top coins to fetch
+//hardcoded number of how many coin list to fetch
 //(use a large number and narrow how many coins are displayed in popup.js
 let numOfCoinsToGet = 100;
 //harcoded calue for decimal precision of prices to fetch
 let decimalPrecision = 8;
-//handles refresh rate of data in milliseconds
-const dataRefreshRate = 60000;
+//handles refresh rate of data in minutes
+const dataRefreshRate = 1;
 
-//check whether new version is installed and intialize data + badges
-chrome.runtime.onInstalled.addListener(function(details){
-    if(details.reason == "install"){
-        console.log("This is a first install!");
-    }else if(details.reason == "update"){
-        var thisVersion = chrome.runtime.getManifest().version;
-        console.log("Updated from " + details.previousVersion + " to " + thisVersion + "!");
-    }
+// immediate first fetch only on a fresh install/update
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    console.log('This is a first install!');
+  } else if (details.reason === 'update') {
+    const thisVersion = chrome.runtime.getManifest().version;
+    console.log('Updated from ' + details.previousVersion + ' to ' + thisVersion + '!');
+  }
+  // fetch immediately on first run AND on every update
+  fetchBitcoinPrice()
+    .then(updateBadgeFromCache)
+    .catch(e => console.error('Initial BTC fetch failed:', e));
+  getCoinList(numOfCoinsToGet, decimalPrecision);
 });
-//initialize badge and data
+// set badge color + register the recurring alarm (runs on every wake)
 const initApp = () => {
-    chrome.action.setBadgeBackgroundColor({ color:'#1B73E8'});
-    // Fetch initial data and update badge when ready
-    fetchBitcoinPrice()
-        .then(() => updateBadgeFromCache())
-        .catch(error => console.error('Initial BTC fetch failed:', error));
-    getTopCoins(numOfCoinsToGet, decimalPrecision);
-    chrome.alarms.create('refreshData', { periodInMinutes: 1 }); // 60000ms = 1 min
+  chrome.action.setBadgeBackgroundColor({ color: '#1B73E8' });
+  chrome.alarms.create('refreshData', { periodInMinutes: dataRefreshRate});
 };
 
 //Unified, consistent console logging for all data events
@@ -48,7 +48,7 @@ function getCachedData(key) {
       const now = Date.now();
       const timestamp = result[`${key}_timestamp`];
       // Check if timestamp exists and is less than 1 minute old
-      if (timestamp && (now - timestamp) < 60000) {
+      if (timestamp && (now - timestamp) < 50000) {
         resolve(result[key]);  // Return the cached data
       } else {
         resolve(null);         // Return null if stale or missing
@@ -83,9 +83,9 @@ function fetchWithRetry(url, retries = 3, backoff = 1000) {
   });
 }
 
-//fetch data for the top coins
-const getTopCoins = (num, precision) => {
-    const cacheKey = 'topCoins';
+//fetch data for the coin list and store it in cache
+const getCoinList = (num, precision) => {
+    const cacheKey = 'CoinList';
     // Check cache first
     getCachedData(cacheKey).then(cachedData => {
         if (cachedData) {
@@ -157,8 +157,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     fetchBitcoinPrice()
       .then(updateBadgeFromCache)
       .catch(e => console.error('BTC fetch failed:', e));
-    getTopCoins(numOfCoinsToGet, decimalPrecision);
+    getCoinList(numOfCoinsToGet, decimalPrecision);
   }
 });
+
 
 
