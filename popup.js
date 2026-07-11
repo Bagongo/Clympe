@@ -8,9 +8,10 @@ const maxPrecision = 8;
 const counterValue = "$";
 
 //updates the dom element that show last time data was updated
-const updateTime = (lastUpdate) => {
-   let updateSpan = document.getElementById("update-time");
-   updateSpan.innerText = lastUpdate;
+const setLastUpdateTime = (lastUpdateTime) => {
+  let formattedDate = lastUpdateTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  let updateSpan = document.getElementById("update-time");
+  updateSpan.innerText = formattedDate;
 }
 //returns an abbreviated and dotted string
 const abbreviate = (str, length) => {
@@ -79,17 +80,35 @@ const updateTitle = (num) => {
   title.innerText = num;
 }
 
-//retrieve the coin data stored locally by the service worker 
-//and calls back the functions to populate the popup with the data
+//retrieve the coin data (or other) stored locally by the service worker 
+function getCachedData(key) {
+  return new Promise((resolve) => {
+    const cacheKey = key;
+    const timestampKey = `${key}_timestamp`;
+    chrome.storage.local.get([cacheKey, timestampKey], (result) => {
+      // Check if the data actually exists in the result
+      if (result[cacheKey]) {
+        resolve({
+          data: result[cacheKey],
+          timestamp: result[timestampKey]
+        });
+      } else { 
+        resolve(null); 
+      }
+    });
+  });
+}
+//calls the functions to populate the popup with the data retrieved from cache
 //(gets executed every time the popup opens)
-chrome.storage.local.get(null, function(result) {
-  console.log(result.coinData);
-  generateCoinSlots(result.coinData, numOfcoinsToDisplay);
-  updateTitle(numOfcoinsToDisplay);
-  updateTime(result.lastUpdate);
+getCachedData('topCoins').then(result => {
+  if (result) {
+    console.log("Data found:", result.data);
+    console.log("Timestamp:", result.timestamp);
+    generateCoinSlots(result.data, numOfcoinsToDisplay);
+    setLastUpdateTime(result.timestamp);
+    updateTitle(numofcoinsToDisplay);
+  } else {
+    console.log("No data found for this key");
+  }
 });
-
-
-
-
 
