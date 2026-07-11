@@ -153,8 +153,7 @@ initApp();
 setInterval(() => {
   fetchBitcoinPrice()
     .then(() => updateBadgeFromCache())
-    .catch(error => console.error('BTC fetch failed:', error));
-}, dataRefreshRate);
+    .catch(error => console.error('BTC fetch failed:', error));}, dataRefreshRate);
 //refresh coin data routine
 setInterval(() => getTopCoins(numOfTopCoins, decimalPrecision), dataRefreshRate);
 
