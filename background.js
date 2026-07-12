@@ -4,7 +4,11 @@ let numOfCoinsToGet = 100;
 //harcoded calue for decimal precision of prices to fetch
 let decimalPrecision = 8;
 //handles refresh rate of data in minutes
-const dataRefreshRate = 1;
+let dataRefreshRate = 1;
+// the higer the number the more stale data is allowed to be used (in ms)
+// note that this has proportionally inverse relation to the freshenss time gap perceived by the user
+let stalenessThreshold = 70000; 
+
 
 // immediate first fetch only on a fresh install/update
 chrome.runtime.onInstalled.addListener((details) => {
@@ -48,7 +52,7 @@ function getCachedData(key) {
       const now = Date.now();
       const timestamp = result[`${key}_timestamp`];
       // Check if timestamp exists and is less than 1 minute old
-      if (timestamp && (now - timestamp) < 50000) {
+      if (timestamp && (now - timestamp) < stalenessThreshold) {
         resolve({ data: result[key], timestamp });
       } else {
         resolve(null);         // Return null if stale or missing
