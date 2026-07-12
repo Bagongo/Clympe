@@ -114,13 +114,14 @@ function getCachedData(key) {
 
 //calls the functions to populate the popup with the data retrieved from cache
 function populatePopup() {
-  getCachedData('CoinList').then(result => {
-    if (result) {
+  getCachedData('CoinList').then(cachedData => {
+    if (cachedData) {
       document.getElementById('coin-box').innerHTML = ''; // clear
-      generateCoinSlots(result.data, numOfCoinsToDisplay);
-      setLastUpdateTime(result.timestamp);
+      generateCoinSlots(cachedData.data, numOfCoinsToDisplay);
+      setLastUpdateTime(cachedData.timestamp);
       updateTitle(numOfCoinsToDisplay);
-      logEvent(Date.now(), 'DATA_FROM_CACHE', 'Coin List', `Popup refreshed with cached data.`);
+       const stalenessSec = Math.round((Date.now() - cachedData.timestamp) / 1000);
+      logEvent(Date.now(), 'DATA_FROM_CACHE', 'Coin List', `Popup refreshed - data staleness: ${stalenessSec}s`);
     }
   });
 }

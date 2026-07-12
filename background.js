@@ -49,7 +49,7 @@ function getCachedData(key) {
       const timestamp = result[`${key}_timestamp`];
       // Check if timestamp exists and is less than 1 minute old
       if (timestamp && (now - timestamp) < 50000) {
-        resolve(result[key]);  // Return the cached data
+        resolve({ data: result[key], timestamp });
       } else {
         resolve(null);         // Return null if stale or missing
       }
@@ -63,7 +63,6 @@ function setCachedData(key, data) {
     [key]: data,
     [`${key}_timestamp`]: timestamp
   });
-
 }
 
 function fetchWithRetry(url, retries = 3, backoff = 1000) {
@@ -89,7 +88,6 @@ const getCoinList = (num, precision) => {
     // Check cache first
     getCachedData(cacheKey).then(cachedData => {
         if (cachedData) {
-            logEvent(Date.now(), 'DATA_FROM_CACHE', 'Coin List', `Using cached data for Coin List.`);
             return cachedData;
         }
         // Cache miss - fetch fresh data
@@ -97,9 +95,8 @@ const getCoinList = (num, precision) => {
         fetchWithRetry(url)
             .then(data => {
                 // Set to cache only on successful fetch
-                logEvent(Date.now(), 'DATA_DOWNLOADED', 'Coin List', `Fetched new data for Coin List.`);
+                logEvent(Date.now(), 'DATA_DOWNLOADED', 'Coin List', `Fetched coinlist of: ${data.length} coins.`);
                 setCachedData(cacheKey, data);
-                logEvent(Date.now(), 'DATA_CACHED', 'Coin List', `Cached new data for Coin List.`);
             })
             .catch(error => console.error("There was a problem while fetching the coin data.", error));
     });
@@ -131,18 +128,18 @@ function fetchBitcoinPrice() {
     .then(data => {
       logEvent(Date.now(), 'DATA_DOWNLOADED', 'BTC Price', `Fetched BTC price: ${data.bitcoin.usd}`);
       setCachedData('btcPrice', data.bitcoin.usd);
-      logEvent(Date.now(), 'DATA_CACHED', 'BTC Price', `Cached BTC price: ${data.bitcoin.usd}`);
     });
 }
 
 //update the badge from cached data if available
 function updateBadgeFromCache() {
   getCachedData('btcPrice')
-    .then(cachedPrice => {
-      if (cachedPrice) {
-        const formattedPrice = formatPrice(cachedPrice);
+    .then(cachedData => {
+      if (cachedData) {
+        const formattedPrice = formatPrice(cachedData.data);
         chrome.action.setBadgeText({ text: formattedPrice });
-        logEvent(Date.now(), 'DATA_FROM_CACHE', 'BTC Price', `Badge refreshed with cached data.`);
+        const stalenessSec = Math.round((Date.now() - cachedData.timestamp) / 1000);
+        logEvent(Date.now(), 'DATA_FROM_CACHE', 'BTC Price', `Badge refreshed - data staleness: ${stalenessSec}s`);
       } else {
         fetchBitcoinPrice();
       }
