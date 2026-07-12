@@ -6,8 +6,7 @@ let decimalPrecision = 8;
 //handles refresh rate of data in minutes
 let dataRefreshRate = 1;
 // the higer the number the more stale data is allowed to be used (in ms)
-// note that this has proportionally inverse relation to the freshenss time gap perceived by the user
-let stalenessThreshold = 70000; 
+let stalenessThreshold = 50 * 1000; // 50 seconds 
 
 
 // immediate first fetch only on a fresh install/update
