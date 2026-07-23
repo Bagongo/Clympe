@@ -109,20 +109,25 @@ const getCoinList = (num, precision) => {
 const formatPrice = n => {
     let price = n;
     let magnitude = "";
-    if (price >= 1e6){
-        price = (+(price / 1e6).toFixed(1)); //add '+ "M"' if logic allows longer text to fit in the badge;
+    
+    if (price >= 1e6) {
+        // Millions: divide by 1M, keep max 3 digits total
+        price = price / 1e6;
         magnitude = "m";
-    }     
-    else if (price >= 1e3) {
-        price = (+(price / 1e3).toFixed(1)); //add '+ "K"' if logic allows longer text to fit in the badge;
+    } else if (price >= 1e3) {
+        // Thousands: divide by 1K, keep max 3 digits total
+        price = price / 1e3;
         magnitude = "k";
+    } else {
+        // Less than 1000: round to integer
+        return Math.round(price).toString();
     }
-    else if (price < 1e3){
-        price = Math.round(price);
-    }
-    price = String(price);
-    return price.length <= 3 ? price + magnitude : price;
+    
+    // Format to max 3 significant digits, only show decimals if needed
+    const formatted = price.toPrecision(3).replace(/\.?0+$/, '');
+    return formatted + magnitude;
 };
+
 
 //fetch bitcoin price and store it in cache
 function fetchBitcoinPrice() {
