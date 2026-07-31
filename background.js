@@ -107,25 +107,32 @@ const getCoinList = (num, precision) => {
 
 //formats the price to be shown in proper shortened version on the ext badge  
 function formatPrice(value) {
-  if (value >= 1e6) {
-    const scaled = value / 1e6;
-    let str = scaled.toPrecision(3).replace(/\.?0+$/, '');
-    if ((str + 'm').length > 4) {
-      str = scaled.toPrecision(2).replace(/\.?0+$/, '');
+  const MAX_BADGE_LENGTH = 4;
+  const fitWithinBadge = (scaledValue, suffix = '') => {
+    const availableChars = MAX_BADGE_LENGTH - suffix.length;
+    for (let decimals = 2; decimals >= 0; decimals--) {
+      const text = scaledValue
+        .toFixed(decimals)
+        .replace(/\.?0+$/, '');
+      if (text.length <= availableChars) {
+        return text + suffix;
+      }
     }
-    return str + 'm';
-  } else if (value >= 1e3) {
-    const scaled = value / 1e3;
-    let str = scaled.toPrecision(3).replace(/\.?0+$/, '');
-    if ((str + 'k').length > 4) {
-      str = scaled.toPrecision(2).replace(/\.?0+$/, '');
-    }
-    return str + 'k';
-  } else {
-    return Math.round(value).toString();
+    return Math.round(scaledValue).toString() + suffix;
+  };
+  const wholeNumber = Math.round(value).toString();
+  if (wholeNumber.length <= MAX_BADGE_LENGTH) {
+    return wholeNumber;
   }
+  const roundedThousands = Math.round(value / 1000);
+  if (
+    (roundedThousands.toString() + 'k').length <= MAX_BADGE_LENGTH &&
+    roundedThousands < 1000
+  ) {
+    return fitWithinBadge(value / 1000, 'k');
+  }
+  return fitWithinBadge(value / 1000000, 'm');
 }
-
 
 //fetch bitcoin price and store it in cache
 function fetchBitcoinPrice() {
