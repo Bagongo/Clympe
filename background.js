@@ -107,31 +107,46 @@ const getCoinList = (num, precision) => {
 
 //formats the price to be shown in proper shortened version on the ext badge  
 function formatPrice(value) {
-  const MAX_BADGE_LENGTH = 4;
-  const fitWithinBadge = (scaledValue, suffix = '') => {
-    const availableChars = MAX_BADGE_LENGTH - suffix.length;
-    for (let decimals = 2; decimals >= 0; decimals--) {
-      const text = scaledValue
-        .toFixed(decimals)
-        .replace(/\.?0+$/, '');
-      if (text.length <= availableChars) {
-        return text + suffix;
-      }
-    }
-    return Math.round(scaledValue).toString() + suffix;
+  const roundTo = (num, decimals) => {
+    const factor = 10 ** decimals;
+    return Math.round((num + Number.EPSILON) * factor) / factor;
   };
-  const wholeNumber = Math.round(value).toString();
-  if (wholeNumber.length <= MAX_BADGE_LENGTH) {
-    return wholeNumber;
+  const fixed = (num, decimals) => roundTo(num, decimals).toFixed(decimals);
+  const flooredInt = Math.floor(value);
+  const roundedInt = Math.round(value);
+  // 1 integer digit  -> 2 real decimal digits
+  if (value < 10) return fixed(value, 2);
+  // 2 integer digits -> 1 real decimal digit
+  if (value < 100) {
+    const out = fixed(value, 1);
+    return out === '100.0' ? '99.9' : out;
   }
-  const roundedThousands = Math.round(value / 1000);
-  if (
-    (roundedThousands.toString() + 'k').length <= MAX_BADGE_LENGTH &&
-    roundedThousands < 1000
-  ) {
-    return fitWithinBadge(value / 1000, 'k');
+  // under 1000 -> integer floor, without premature promotion to k
+  if (value < 1000) return String(flooredInt);
+  // 1.xk ... 9.xk -> forced decimal, but only if it stays below 10k
+  if (roundedInt < 10000) {
+    const kValue = roundTo(value / 1000, 1);
+    if (kValue < 10) {
+      return kValue.toFixed(1) + 'k';
+    }
+    return '10k';
   }
-  return fitWithinBadge(value / 1000000, 'm');
+  // 10k ... 999k
+  if (roundedInt < 999500) {
+    const thousands = Math.round(roundedInt / 1000);
+    if (thousands === 100 && roundedInt < 99950) {
+      return '99k';
+    }
+    return `${thousands}k`;
+  }
+  // 999500 ... 999999 -> 1.0m
+  if (roundedInt < 1000000) return '1.0m';
+  const millions = value / 1000000;
+  const roundedMillions1 = roundTo(millions, 1);
+  // 1.xm ... 9.xm -> forced decimal, but only if it stays below 10m
+  if (roundedMillions1 < 10) return roundedMillions1.toFixed(1) + 'm';
+  // 10m+ -> integer floor
+  return `${Math.round((value + Number.EPSILON) / 1000000)}m`;
 }
 
 //fetch bitcoin price and store it in cache
